@@ -124,15 +124,12 @@ export default function PlayJoin() {
         <div className="w-full max-w-md">
           {/* Hero Section */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-[#d00] rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-[-30deg]">
-              <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <ellipse cx="12" cy="12" rx="9" ry="5" fill="currentColor"/>
-                <path d="M12 7v10" strokeLinecap="round"/>
-                <path d="M9 8.5l6 0" strokeLinecap="round"/>
-                <path d="M9 11l6 0" strokeLinecap="round"/>
-                <path d="M9 13l6 0" strokeLinecap="round"/>
-                <path d="M9 15.5l6 0" strokeLinecap="round"/>
-              </svg>
+            <div className="w-20 h-20 mx-auto mb-4">
+              <img
+                src="/football-icon.jpg"
+                alt="Football"
+                className="w-full h-full object-contain"
+              />
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">
               2026 Super Bowl Trivia
