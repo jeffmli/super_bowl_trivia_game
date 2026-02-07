@@ -149,14 +149,34 @@ export function QuestionCard({
               </div>
             ) : (
               <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Type your answer..."
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  className="espn-input w-full"
-                  disabled={isSubmitting}
-                />
+                {question.question_type === "multiple_choice" && question.options ? (
+                  <div className="space-y-2">
+                    {question.options.map((option, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setAnswer(option)}
+                        disabled={isSubmitting}
+                        className={`w-full text-left px-4 py-3 rounded border-2 transition-colors ${
+                          answer === option
+                            ? "border-[#d00] bg-[#fff5f5] text-[#d00] font-semibold"
+                            : "border-[#e8e8e8] hover:border-[#ccc] text-[#484848]"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Type your answer..."
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    className="espn-input w-full"
+                    disabled={isSubmitting}
+                  />
+                )}
                 <div className="flex gap-2">
                   <button
                     type="submit"

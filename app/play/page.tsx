@@ -19,7 +19,6 @@ function generateJoinCode(name: string): string {
 export default function PlayJoin() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [gameCode, setGameCode] = useState("");
   const [rejoinCode, setRejoinCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
@@ -34,26 +33,12 @@ export default function PlayJoin() {
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !gameCode.trim()) return;
+    if (!name.trim()) return;
 
     setIsJoining(true);
     const supabase = createClient();
 
     try {
-      const { data: settings, error: settingsError } = await supabase
-        .from("game_settings")
-        .select("setting_value")
-        .eq("setting_key", "share_code")
-        .single();
-
-      if (settingsError) throw settingsError;
-
-      if (settings.setting_value.toLowerCase() !== gameCode.trim().toLowerCase()) {
-        toast.error("Invalid game code");
-        setIsJoining(false);
-        return;
-      }
-
       const joinCode = generateJoinCode(name.trim());
       const { data: player, error: playerError } = await supabase
         .from("players")
@@ -115,23 +100,23 @@ export default function PlayJoin() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#121212]">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1a1a1a] to-[#2d2d2d]">
       <Header />
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Hero Section */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-black text-white mb-2">
+            <h1 className="text-4xl font-black text-white mb-3 drop-shadow-lg">
               SUPER BOWL TRIVIA
             </h1>
-            <p className="text-[#999] text-sm">
+            <p className="text-[#b0b0b0] text-base">
               Test your football knowledge against friends
             </p>
           </div>
 
           {!showRejoin ? (
-            <div className="espn-card p-6">
-              <div className="espn-section-header">Join Game</div>
+            <div className="espn-card p-6 shadow-xl">
+              <div className="text-lg font-bold text-[#121212] mb-4">Join Game</div>
 
               <form onSubmit={handleJoin} className="space-y-4">
                 <div>
@@ -153,29 +138,10 @@ export default function PlayJoin() {
                   />
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="gameCode"
-                    className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2"
-                  >
-                    Game Code
-                  </label>
-                  <input
-                    id="gameCode"
-                    type="text"
-                    placeholder="e.g., BOWL25"
-                    value={gameCode}
-                    onChange={(e) => setGameCode(e.target.value.toUpperCase())}
-                    className="espn-input w-full font-mono uppercase"
-                    disabled={isJoining}
-                    maxLength={20}
-                  />
-                </div>
-
                 <button
                   type="submit"
                   className="espn-button w-full"
-                  disabled={!name.trim() || !gameCode.trim() || isJoining}
+                  disabled={!name.trim() || isJoining}
                 >
                   {isJoining ? "Joining..." : "Join Game"}
                 </button>
@@ -185,14 +151,14 @@ export default function PlayJoin() {
 
               <button
                 onClick={() => setShowRejoin(true)}
-                className="w-full text-center text-sm text-[#6c6c6c] hover:text-[#d00] transition-colors"
+                className="w-full text-center text-sm text-[#888] hover:text-[#121212] transition-colors"
               >
                 Returning player? <span className="font-semibold">Click to rejoin</span>
               </button>
             </div>
           ) : (
-            <div className="espn-card p-6">
-              <div className="espn-section-header">Rejoin Game</div>
+            <div className="espn-card p-6 shadow-xl">
+              <div className="text-lg font-bold text-[#121212] mb-4">Rejoin Game</div>
 
               <form onSubmit={handleRejoin} className="space-y-4">
                 <div>
@@ -227,7 +193,7 @@ export default function PlayJoin() {
 
               <button
                 onClick={() => setShowRejoin(false)}
-                className="w-full text-center text-sm text-[#6c6c6c] hover:text-[#d00] transition-colors"
+                className="w-full text-center text-sm text-[#888] hover:text-[#121212] transition-colors"
               >
                 New player? <span className="font-semibold">Click to join</span>
               </button>

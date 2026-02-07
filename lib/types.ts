@@ -1,6 +1,10 @@
+export type QuestionType = 'freeform' | 'multiple_choice';
+
 export interface Question {
   id: string;
   question_text: string;
+  question_type: QuestionType;
+  options: string[] | null;
   correct_answer: string | null;
   points: number;
   is_active: boolean;

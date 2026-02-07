@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
-import { Question, Answer, Player } from "@/lib/types";
+import { Question, Answer, Player, QuestionType } from "@/lib/types";
 import { toast } from "sonner";
 
 interface AnswerWithPlayer extends Answer {
@@ -25,6 +25,8 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [newQuestion, setNewQuestion] = useState("");
   const [newPoints, setNewPoints] = useState(10);
+  const [newQuestionType, setNewQuestionType] = useState<QuestionType>("freeform");
+  const [newOptions, setNewOptions] = useState<string[]>(["", "", "", ""]);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [shareCode, setShareCode] = useState("");
   const [playerCount, setPlayerCount] = useState(0);
@@ -99,6 +101,15 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newQuestion.trim()) return;
 
+    // Validate multiple choice options
+    if (newQuestionType === "multiple_choice") {
+      const validOptions = newOptions.filter(opt => opt.trim() !== "");
+      if (validOptions.length < 2) {
+        toast.error("Please add at least 2 options for multiple choice");
+        return;
+      }
+    }
+
     setIsAddingQuestion(true);
     const supabase = createClient();
 
@@ -107,8 +118,14 @@ export default function AdminDashboard() {
         ? Math.max(...questions.map(q => q.question_order)) + 1
         : 1;
 
+      const options = newQuestionType === "multiple_choice"
+        ? newOptions.filter(opt => opt.trim() !== "")
+        : null;
+
       const { error } = await supabase.from("questions").insert({
         question_text: newQuestion.trim(),
+        question_type: newQuestionType,
+        options: options,
         points: newPoints,
         question_order: nextOrder,
       });
@@ -118,6 +135,8 @@ export default function AdminDashboard() {
       toast.success("Question added!");
       setNewQuestion("");
       setNewPoints(10);
+      setNewQuestionType("freeform");
+      setNewOptions(["", "", "", ""]);
       fetchQuestions();
     } catch (error) {
       console.error("Error adding question:", error);
@@ -301,15 +320,67 @@ export default function AdminDashboard() {
                   <form onSubmit={handleAddQuestion} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
+                        Question Type
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewQuestionType("freeform")}
+                          className={`flex-1 py-2 px-3 text-sm font-semibold rounded transition-colors ${
+                            newQuestionType === "freeform"
+                              ? "bg-[#d00] text-white"
+                              : "bg-[#f4f4f4] text-[#484848] hover:bg-[#e8e8e8]"
+                          }`}
+                        >
+                          Free-form
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewQuestionType("multiple_choice")}
+                          className={`flex-1 py-2 px-3 text-sm font-semibold rounded transition-colors ${
+                            newQuestionType === "multiple_choice"
+                              ? "bg-[#d00] text-white"
+                              : "bg-[#f4f4f4] text-[#484848] hover:bg-[#e8e8e8]"
+                          }`}
+                        >
+                          Multiple Choice
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
                         Question
                       </label>
                       <textarea
                         placeholder="Enter your trivia question..."
                         value={newQuestion}
                         onChange={(e) => setNewQuestion(e.target.value)}
-                        className="espn-input w-full min-h-[100px] resize-none"
+                        className="espn-input w-full min-h-[80px] resize-none"
                       />
                     </div>
+                    {newQuestionType === "multiple_choice" && (
+                      <div>
+                        <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
+                          Options (min 2)
+                        </label>
+                        <div className="space-y-2">
+                          {newOptions.map((option, index) => (
+                            <input
+                              key={index}
+                              type="text"
+                              placeholder={`Option ${index + 1}`}
+                              value={option}
+                              onChange={(e) => {
+                                const updated = [...newOptions];
+                                updated[index] = e.target.value;
+                                setNewOptions(updated);
+                              }}
+                              className="espn-input w-full"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
                         Points
@@ -354,6 +425,9 @@ export default function AdminDashboard() {
                             <div className="flex items-center gap-2 mb-2">
                               <span className="espn-badge espn-badge-gray text-[10px]">Q{index + 1}</span>
                               <span className="espn-badge espn-badge-outline text-[10px]">{question.points} PTS</span>
+                              <span className="espn-badge espn-badge-outline text-[10px]">
+                                {question.question_type === "multiple_choice" ? "MC" : "FREE"}
+                              </span>
                               {question.is_revealed ? (
                                 <span className="espn-badge espn-badge-green text-[10px]">REVEALED</span>
                               ) : (
@@ -363,6 +437,15 @@ export default function AdminDashboard() {
                             <p className="text-[#121212] font-medium mb-2">
                               {question.question_text}
                             </p>
+                            {question.question_type === "multiple_choice" && question.options && (
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {question.options.map((opt, i) => (
+                                  <span key={i} className="text-xs bg-[#f4f4f4] px-2 py-1 rounded text-[#484848]">
+                                    {opt}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             {question.is_revealed && question.correct_answer && (
                               <div className="bg-[#e8f5e9] rounded px-3 py-2 inline-block">
                                 <span className="text-[10px] font-bold text-[#2e7d32] uppercase tracking-wide">
@@ -415,13 +498,32 @@ export default function AdminDashboard() {
               <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
                 Correct Answer
               </label>
-              <input
-                type="text"
-                placeholder="Enter the correct answer..."
-                value={correctAnswer}
-                onChange={(e) => setCorrectAnswer(e.target.value)}
-                className="espn-input w-full"
-              />
+              {selectedQuestion?.question_type === "multiple_choice" && selectedQuestion.options ? (
+                <div className="space-y-2">
+                  {selectedQuestion.options.map((option, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => setCorrectAnswer(option)}
+                      className={`w-full text-left px-4 py-3 rounded border-2 transition-colors ${
+                        correctAnswer === option
+                          ? "border-[#d00] bg-[#fff5f5] text-[#d00] font-semibold"
+                          : "border-[#e8e8e8] hover:border-[#ccc] text-[#484848]"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Enter the correct answer..."
+                  value={correctAnswer}
+                  onChange={(e) => setCorrectAnswer(e.target.value)}
+                  className="espn-input w-full"
+                />
+              )}
             </div>
 
             {questionAnswers.length > 0 && (
