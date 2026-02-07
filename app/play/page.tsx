@@ -100,16 +100,16 @@ export default function PlayJoin() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1a1a1a] to-[#2d2d2d]">
+    <div className="min-h-screen flex flex-col bg-[#f7f7f8]">
       <Header />
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Hero Section */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-black text-white mb-3 drop-shadow-lg">
-              SUPER BOWL TRIVIA
+            <h1 className="text-4xl font-black text-gray-900 mb-3">
+              2026 SUPER BOWL TRIVIA
             </h1>
-            <p className="text-[#b0b0b0] text-base">
+            <p className="text-gray-500 text-base">
               Test your football knowledge against friends
             </p>
           </div>
