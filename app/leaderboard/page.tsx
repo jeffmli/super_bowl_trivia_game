@@ -106,7 +106,19 @@ export default function Leaderboard() {
                 <div className="bg-[#252525] px-4 py-3">
                   <div className="flex items-center justify-between">
                     <span className="text-white font-bold text-sm">RANKINGS</span>
-                    <span className="espn-badge espn-badge-green text-[10px]">LIVE</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={fetchData}
+                        className="text-[10px] text-white/60 hover:text-white transition-colors flex items-center gap-1"
+                        title="Refresh leaderboard"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                      </button>
+                      <span className="espn-badge espn-badge-green text-[10px]">LIVE</span>
+                    </div>
                   </div>
                 </div>
                 <LeaderboardTable
