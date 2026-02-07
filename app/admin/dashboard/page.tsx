@@ -22,6 +22,7 @@ interface AnswerWithPlayer extends Answer {
 export default function AdminDashboard() {
   const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newQuestion, setNewQuestion] = useState("");
   const [newPoints, setNewPoints] = useState(10);
@@ -36,6 +37,10 @@ export default function AdminDashboard() {
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [questionAnswers, setQuestionAnswers] = useState<AnswerWithPlayer[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
+
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetQuestions, setResetQuestions] = useState(false);
 
   const fetchQuestions = useCallback(async () => {
     const supabase = createClient();
@@ -66,14 +71,72 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const fetchPlayerCount = useCallback(async () => {
+  const fetchPlayers = useCallback(async () => {
     const supabase = createClient();
-    const { count } = await supabase
+    const { data, count } = await supabase
       .from("players")
-      .select("*", { count: "exact", head: true });
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false });
 
+    setPlayers(data || []);
     setPlayerCount(count || 0);
   }, []);
+
+  const handleDeletePlayer = async (playerId: string, playerName: string) => {
+    if (!confirm(`Are you sure you want to delete player "${playerName}"?`)) return;
+
+    const supabase = createClient();
+
+    try {
+      // Delete player's answers first
+      await supabase.from("answers").delete().eq("player_id", playerId);
+      // Then delete the player
+      const { error } = await supabase.from("players").delete().eq("id", playerId);
+
+      if (error) throw error;
+
+      toast.success(`Player "${playerName}" deleted`);
+      fetchPlayers();
+    } catch (error) {
+      console.error("Error deleting player:", error);
+      toast.error("Failed to delete player");
+    }
+  };
+
+  const handleResetGame = async () => {
+    setIsResetting(true);
+    const supabase = createClient();
+
+    try {
+      // Delete all answers
+      await supabase.from("answers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+      // Delete all players
+      await supabase.from("players").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (resetQuestions) {
+        // Delete all questions if checkbox is checked
+        await supabase.from("questions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      } else {
+        // Reset questions to unrevealed state
+        await supabase
+          .from("questions")
+          .update({ is_revealed: false, correct_answer: null })
+          .neq("id", "00000000-0000-0000-0000-000000000000");
+      }
+
+      toast.success("Game reset successfully!");
+      setResetDialogOpen(false);
+      setResetQuestions(false);
+      fetchQuestions();
+      fetchPlayers();
+    } catch (error) {
+      console.error("Error resetting game:", error);
+      toast.error("Failed to reset game");
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("admin_authenticated");
@@ -94,8 +157,8 @@ export default function AdminDashboard() {
 
     fetchQuestions();
     fetchShareCode();
-    fetchPlayerCount();
-  }, [router, fetchQuestions, fetchShareCode, fetchPlayerCount]);
+    fetchPlayers();
+  }, [router, fetchQuestions, fetchShareCode, fetchPlayers]);
 
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -297,6 +360,12 @@ export default function AdminDashboard() {
                 <div className="text-white font-black text-2xl">{revealedCount}/{questions.length}</div>
               </div>
               <button
+                onClick={() => setResetDialogOpen(true)}
+                className="text-xs py-2 px-4 border border-red-400/50 text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded font-semibold transition-colors"
+              >
+                Reset Game
+              </button>
+              <button
                 onClick={handleLogout}
                 className="espn-button-outline text-xs py-2 px-4 border-white/30 text-white/80 hover:bg-white/10 hover:text-white"
               >
@@ -407,7 +476,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Questions List */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-6">
               <div className="espn-card overflow-hidden">
                 <div className="bg-[#252525] px-4 py-3">
                   <span className="text-white font-bold text-sm">QUESTIONS ({questions.length})</span>
@@ -479,10 +548,91 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+
+              {/* Players List */}
+              <div className="espn-card overflow-hidden">
+                <div className="bg-[#252525] px-4 py-3">
+                  <span className="text-white font-bold text-sm">PLAYERS ({playerCount})</span>
+                </div>
+                {players.length === 0 ? (
+                  <div className="p-8 text-center text-[#6c6c6c]">
+                    No players have joined yet.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#e8e8e8]">
+                    {players.map((player) => (
+                      <div key={player.id} className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-semibold text-gray-600">
+                              {player.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-[#121212]">{player.name}</div>
+                            <div className="text-xs text-[#6c6c6c] font-mono">{player.join_code}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-[#121212]">{player.total_score} pts</div>
+                          </div>
+                          <button
+                            onClick={() => handleDeletePlayer(player.id, player.name)}
+                            className="text-xs py-2 px-3 text-[#d00] hover:bg-[#ffebee] rounded font-semibold transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Reset Game Dialog */}
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-red-600">Reset Game</DialogTitle>
+            <DialogDescription className="text-[#484848]">
+              This will delete all players and their answers. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={resetQuestions}
+                onChange={(e) => setResetQuestions(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-[#d00] focus:ring-[#d00]"
+              />
+              <span className="text-sm text-[#484848]">
+                Also delete all questions (start completely fresh)
+              </span>
+            </label>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setResetDialogOpen(false)}
+              className="espn-button-outline"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleResetGame}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition-colors"
+              disabled={isResetting}
+            >
+              {isResetting ? "Resetting..." : "Reset Game"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Reveal Answer Dialog */}
       <Dialog open={revealDialogOpen} onOpenChange={setRevealDialogOpen}>
