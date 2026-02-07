@@ -76,7 +76,7 @@ export default function AdminLogin() {
               </div>
               <button
                 type="submit"
-                className="espn-button w-full"
+                className="w-full py-3 px-4 bg-[#d00] text-white font-semibold rounded-lg hover:bg-[#b00] disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d00]"
                 disabled={!password.trim() || isLoading}
               >
                 {isLoading ? "Verifying..." : "Login"}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Header } from "@/components/Header";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -101,23 +101,7 @@ export default function PlayJoin() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f7f8]">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#d00] rounded flex items-center justify-center">
-              <span className="text-white font-black text-xs">SB</span>
-            </div>
-            <span className="font-bold text-gray-900 hidden sm:block">Super Bowl Trivia</span>
-          </Link>
-          <Link
-            href="/leaderboard"
-            className="text-sm font-medium text-gray-600 hover:text-[#d00] transition-colors"
-          >
-            View Leaderboard
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
