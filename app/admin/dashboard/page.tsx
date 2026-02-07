@@ -240,7 +240,10 @@ export default function AdminDashboard() {
         })
         .eq("id", selectedQuestion.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error revealing answer:", error.message, error.details, error.hint);
+        throw new Error(error.message || "Failed to reveal answer");
+      }
 
       toast.success("Answer revealed and scores updated!");
       setRevealDialogOpen(false);
@@ -249,8 +252,8 @@ export default function AdminDashboard() {
       setQuestionAnswers([]);
       fetchQuestions();
     } catch (error) {
-      console.error("Error revealing answer:", error);
-      toast.error("Failed to reveal answer");
+      console.error("Error revealing answer:", error instanceof Error ? error.message : JSON.stringify(error));
+      toast.error(error instanceof Error ? error.message : "Failed to reveal answer");
     } finally {
       setIsRevealing(false);
     }
@@ -636,14 +639,14 @@ export default function AdminDashboard() {
 
       {/* Reveal Answer Dialog */}
       <Dialog open={revealDialogOpen} onOpenChange={setRevealDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">Reveal Answer</DialogTitle>
             <DialogDescription className="text-[#484848]">
               {selectedQuestion?.question_text}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
             <div>
               <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
                 Correct Answer
@@ -681,7 +684,7 @@ export default function AdminDashboard() {
                 <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
                   Player Answers ({questionAnswers.length})
                 </label>
-                <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                <div className="space-y-2">
                   {questionAnswers.map((answer) => (
                     <div
                       key={answer.id}
@@ -695,6 +698,7 @@ export default function AdminDashboard() {
                         <span className="espn-badge espn-badge-green text-[10px]">CORRECT</span>
                       ) : (
                         <button
+                          type="button"
                           onClick={() =>
                             handleMarkCorrect(
                               answer.id,
@@ -715,12 +719,14 @@ export default function AdminDashboard() {
           </div>
           <DialogFooter>
             <button
+              type="button"
               onClick={() => setRevealDialogOpen(false)}
               className="espn-button-outline"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleRevealAnswer}
               className="espn-button"
               disabled={!correctAnswer.trim() || isRevealing}

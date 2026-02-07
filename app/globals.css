@@ -194,10 +194,16 @@
   transition: background 0.15s ease;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  cursor: pointer;
 }
 
-.espn-button:hover {
+.espn-button:hover:not(:disabled) {
   background: #a00;
+}
+
+.espn-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .espn-button-outline {
@@ -211,11 +217,17 @@
   transition: all 0.15s ease;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  cursor: pointer;
 }
 
-.espn-button-outline:hover {
+.espn-button-outline:hover:not(:disabled) {
   background: #d00;
   color: white;
+}
+
+.espn-button-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .espn-input {
