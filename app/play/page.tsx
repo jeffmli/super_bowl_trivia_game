@@ -124,31 +124,6 @@ export default function PlayJoin() {
         <div className="w-full max-w-md">
           {/* Hero Section */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-4">
-              <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
-                {/* Football body */}
-                <ellipse cx="50" cy="50" rx="45" ry="28" fill="#8B4513" transform="rotate(-45 50 50)"/>
-                {/* Darker shading */}
-                <ellipse cx="50" cy="50" rx="45" ry="28" fill="url(#footballGradient)" transform="rotate(-45 50 50)"/>
-                {/* White stripes */}
-                <path d="M20 25 Q50 45 80 25" stroke="white" strokeWidth="3" fill="none" transform="rotate(-45 50 50)"/>
-                <path d="M20 75 Q50 55 80 75" stroke="white" strokeWidth="3" fill="none" transform="rotate(-45 50 50)"/>
-                {/* Center lace line */}
-                <line x1="50" y1="30" x2="50" y2="70" stroke="white" strokeWidth="2" transform="rotate(-45 50 50)"/>
-                {/* Laces */}
-                <line x1="44" y1="38" x2="56" y2="38" stroke="white" strokeWidth="2" transform="rotate(-45 50 50)"/>
-                <line x1="44" y1="46" x2="56" y2="46" stroke="white" strokeWidth="2" transform="rotate(-45 50 50)"/>
-                <line x1="44" y1="54" x2="56" y2="54" stroke="white" strokeWidth="2" transform="rotate(-45 50 50)"/>
-                <line x1="44" y1="62" x2="56" y2="62" stroke="white" strokeWidth="2" transform="rotate(-45 50 50)"/>
-                <defs>
-                  <linearGradient id="footballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#A0522D"/>
-                    <stop offset="50%" stopColor="#8B4513"/>
-                    <stop offset="100%" stopColor="#654321"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
             <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">
               2026 Super Bowl Trivia
             </h1>
