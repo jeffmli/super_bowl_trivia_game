@@ -110,7 +110,7 @@ export default function PlayJoin() {
               2026 SUPER BOWL TRIVIA
             </h1>
             <p className="text-gray-500 text-base">
-              Test your football knowledge against friends
+              The best game to get everyone excited for the super bowl.
             </p>
           </div>
 

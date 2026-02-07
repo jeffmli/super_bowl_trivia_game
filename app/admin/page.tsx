@@ -44,13 +44,13 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#121212]">
+    <div className="min-h-screen flex flex-col bg-[#f7f7f8]">
       <Header />
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-black text-white mb-2">ADMIN LOGIN</h1>
-            <p className="text-[#999] text-sm">
+            <h1 className="text-3xl font-black text-gray-900 mb-2">ADMIN LOGIN</h1>
+            <p className="text-gray-500 text-sm">
               Enter the admin password to continue
             </p>
           </div>
