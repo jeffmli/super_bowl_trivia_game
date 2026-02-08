@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   const [newQuestion, setNewQuestion] = useState("");
   const [newPoints, setNewPoints] = useState(10);
   const [newQuestionType, setNewQuestionType] = useState<QuestionType>("freeform");
-  const [newOptions, setNewOptions] = useState<string[]>(["", "", "", ""]);
+  const [newOptions, setNewOptions] = useState<string[]>(["", "", "", "", "", ""]);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [shareCode, setShareCode] = useState("");
   const [playerCount, setPlayerCount] = useState(0);
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
       setNewQuestion("");
       setNewPoints(10);
       setNewQuestionType("freeform");
-      setNewOptions(["", "", "", ""]);
+      setNewOptions(["", "", "", "", "", ""]);
       fetchQuestions();
     } catch (error) {
       console.error("Error adding question:", error);
