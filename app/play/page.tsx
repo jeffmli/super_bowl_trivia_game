@@ -112,7 +112,7 @@ export default function PlayJoin() {
               2026 Super Bowl Trivia
             </h1>
             <p className="text-gray-500 text-base">
-              The best game to get everyone excited for the super bowl.
+              Win. Glory. Become the Bend, Oregon Super Bowl King.
             </p>
           </div>
 

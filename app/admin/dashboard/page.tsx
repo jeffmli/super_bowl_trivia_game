@@ -11,12 +11,133 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { createClient } from "@/lib/supabase/client";
 import { Question, Answer, Player, QuestionType } from "@/lib/types";
 import { toast } from "sonner";
 
 interface AnswerWithPlayer extends Answer {
   player: Player;
+}
+
+interface SortableQuestionItemProps {
+  question: Question;
+  index: number;
+  onReveal: (question: Question) => void;
+  onDelete: (questionId: string) => void;
+  onEdit: (question: Question) => void;
+}
+
+function SortableQuestionItem({ question, index, onReveal, onDelete, onEdit }: SortableQuestionItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: question.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3 flex-1">
+          {/* Drag Handle */}
+          <button
+            type="button"
+            className="mt-1 cursor-grab active:cursor-grabbing text-[#999] hover:text-[#484848] transition-colors touch-none"
+            {...attributes}
+            {...listeners}
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+            </svg>
+          </button>
+
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="espn-badge espn-badge-gray text-[10px]">Q{index + 1}</span>
+              <span className="espn-badge espn-badge-outline text-[10px]">{question.points} PTS</span>
+              <span className="espn-badge espn-badge-outline text-[10px]">
+                {question.question_type === "multiple_choice" ? "MC" : "FREE"}
+              </span>
+              {question.is_revealed ? (
+                <span className="espn-badge espn-badge-green text-[10px]">REVEALED</span>
+              ) : (
+                <span className="espn-badge espn-badge-outline text-[10px]">PENDING</span>
+              )}
+            </div>
+            <p className="text-[#121212] font-medium mb-2">
+              {question.question_text}
+            </p>
+            {question.question_type === "multiple_choice" && question.options && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {question.options.map((opt, i) => (
+                  <span key={i} className="text-xs bg-[#f4f4f4] px-2 py-1 rounded text-[#484848]">
+                    {opt}
+                  </span>
+                ))}
+              </div>
+            )}
+            {question.is_revealed && question.correct_answer && (
+              <div className="bg-[#e8f5e9] rounded px-3 py-2 inline-block">
+                <span className="text-[10px] font-bold text-[#2e7d32] uppercase tracking-wide">
+                  Answer:{" "}
+                </span>
+                <span className="text-[#1b5e20] font-semibold text-sm">
+                  {question.correct_answer}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {!question.is_revealed && (
+            <button
+              onClick={() => onReveal(question)}
+              className="espn-button text-xs py-2 px-3"
+            >
+              Set Answer
+            </button>
+          )}
+          <button
+            onClick={() => onEdit(question)}
+            className="text-xs py-2 px-3 text-[#484848] hover:bg-[#f4f4f4] rounded font-semibold transition-colors"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(question.id)}
+            className="text-xs py-2 px-3 text-[#d00] hover:bg-[#ffebee] rounded font-semibold transition-colors"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminDashboard() {
@@ -27,7 +148,7 @@ export default function AdminDashboard() {
   const [newQuestion, setNewQuestion] = useState("");
   const [newPoints, setNewPoints] = useState(10);
   const [newQuestionType, setNewQuestionType] = useState<QuestionType>("freeform");
-  const [newOptions, setNewOptions] = useState<string[]>(["", "", "", ""]);
+  const [newOptions, setNewOptions] = useState<string[]>(["", "", "", "", "", ""]);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [shareCode, setShareCode] = useState("");
   const [playerCount, setPlayerCount] = useState(0);
@@ -37,6 +158,16 @@ export default function AdminDashboard() {
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [questionAnswers, setQuestionAnswers] = useState<AnswerWithPlayer[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editQuestion, setEditQuestion] = useState<Question | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editPoints, setEditPoints] = useState(10);
+  const [editType, setEditType] = useState<QuestionType>("freeform");
+  const [editOptions, setEditOptions] = useState<string[]>(["", "", "", "", "", ""]);
+  const [editRevealed, setEditRevealed] = useState(false);
+  const [editCorrectAnswer, setEditCorrectAnswer] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -199,7 +330,7 @@ export default function AdminDashboard() {
       setNewQuestion("");
       setNewPoints(10);
       setNewQuestionType("freeform");
-      setNewOptions(["", "", "", ""]);
+      setNewOptions(["", "", "", "", "", ""]);
       fetchQuestions();
     } catch (error) {
       console.error("Error adding question:", error);
@@ -318,10 +449,113 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleOpenEditDialog = (question: Question) => {
+    setEditQuestion(question);
+    setEditText(question.question_text);
+    setEditPoints(question.points);
+    setEditType(question.question_type);
+    setEditRevealed(question.is_revealed);
+    setEditCorrectAnswer(question.correct_answer || "");
+    const opts = question.options || [];
+    const padded = [...opts, ...Array(6 - opts.length).fill("")];
+    setEditOptions(padded.slice(0, 6));
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editQuestion || !editText.trim()) return;
+
+    if (editType === "multiple_choice") {
+      const validOptions = editOptions.filter(opt => opt.trim() !== "");
+      if (validOptions.length < 2) {
+        toast.error("Please add at least 2 options for multiple choice");
+        return;
+      }
+    }
+
+    setIsSavingEdit(true);
+    const supabase = createClient();
+
+    try {
+      const options = editType === "multiple_choice"
+        ? editOptions.filter(opt => opt.trim() !== "")
+        : null;
+
+      const updateData: Record<string, unknown> = {
+        question_text: editText.trim(),
+        question_type: editType,
+        options: options,
+        points: editPoints,
+        is_revealed: editRevealed,
+      };
+
+      // If un-revealing, clear the correct answer and reset scores
+      if (!editRevealed && editQuestion.is_revealed) {
+        updateData.correct_answer = null;
+      }
+
+      // If setting revealed and providing a correct answer
+      if (editRevealed && editCorrectAnswer.trim()) {
+        updateData.correct_answer = editCorrectAnswer.trim();
+      }
+
+      const { error } = await supabase
+        .from("questions")
+        .update(updateData)
+        .eq("id", editQuestion.id);
+
+      if (error) {
+        console.error("Error saving question:", error.message, error.details, error.hint);
+        throw new Error(error.message || "Failed to save question");
+      }
+
+      toast.success("Question updated!");
+      setEditDialogOpen(false);
+      setEditQuestion(null);
+      fetchQuestions();
+    } catch (error) {
+      console.error("Error saving question:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save question");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("admin_authenticated");
     localStorage.removeItem("admin_auth_time");
     router.push("/admin");
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = questions.findIndex((q) => q.id === active.id);
+    const newIndex = questions.findIndex((q) => q.id === over.id);
+
+    const reordered = arrayMove(questions, oldIndex, newIndex);
+    setQuestions(reordered);
+
+    const supabase = createClient();
+    try {
+      const updates = reordered.map((q, i) =>
+        supabase
+          .from("questions")
+          .update({ question_order: i + 1 })
+          .eq("id", q.id)
+      );
+      await Promise.all(updates);
+    } catch (error) {
+      console.error("Error reordering questions:", error);
+      toast.error("Failed to save new order");
+      fetchQuestions();
+    }
   };
 
   if (isLoading) {
@@ -489,66 +723,29 @@ export default function AdminDashboard() {
                     No questions yet. Add your first question!
                   </div>
                 ) : (
-                  <div className="divide-y divide-[#e8e8e8]">
-                    {questions.map((question, index) => (
-                      <div key={question.id} className="p-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="espn-badge espn-badge-gray text-[10px]">Q{index + 1}</span>
-                              <span className="espn-badge espn-badge-outline text-[10px]">{question.points} PTS</span>
-                              <span className="espn-badge espn-badge-outline text-[10px]">
-                                {question.question_type === "multiple_choice" ? "MC" : "FREE"}
-                              </span>
-                              {question.is_revealed ? (
-                                <span className="espn-badge espn-badge-green text-[10px]">REVEALED</span>
-                              ) : (
-                                <span className="espn-badge espn-badge-outline text-[10px]">PENDING</span>
-                              )}
-                            </div>
-                            <p className="text-[#121212] font-medium mb-2">
-                              {question.question_text}
-                            </p>
-                            {question.question_type === "multiple_choice" && question.options && (
-                              <div className="flex flex-wrap gap-2 mb-2">
-                                {question.options.map((opt, i) => (
-                                  <span key={i} className="text-xs bg-[#f4f4f4] px-2 py-1 rounded text-[#484848]">
-                                    {opt}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {question.is_revealed && question.correct_answer && (
-                              <div className="bg-[#e8f5e9] rounded px-3 py-2 inline-block">
-                                <span className="text-[10px] font-bold text-[#2e7d32] uppercase tracking-wide">
-                                  Answer:{" "}
-                                </span>
-                                <span className="text-[#1b5e20] font-semibold text-sm">
-                                  {question.correct_answer}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            {!question.is_revealed && (
-                              <button
-                                onClick={() => handleOpenRevealDialog(question)}
-                                className="espn-button text-xs py-2 px-3"
-                              >
-                                Set Answer
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteQuestion(question.id)}
-                              className="text-xs py-2 px-3 text-[#d00] hover:bg-[#ffebee] rounded font-semibold transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={questions.map((q) => q.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="divide-y divide-[#e8e8e8]">
+                        {questions.map((question, index) => (
+                          <SortableQuestionItem
+                            key={question.id}
+                            question={question}
+                            index={index}
+                            onReveal={handleOpenRevealDialog}
+                            onDelete={handleDeleteQuestion}
+                            onEdit={handleOpenEditDialog}
+                          />
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
 
@@ -596,6 +793,145 @@ export default function AdminDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Edit Question Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Edit Question</DialogTitle>
+            <DialogDescription className="text-[#484848]">
+              Update the question details below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
+            <div>
+              <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
+                Question Type
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditType("freeform")}
+                  className={`flex-1 py-2 px-3 text-sm font-semibold rounded transition-colors ${
+                    editType === "freeform"
+                      ? "bg-[#d00] text-white"
+                      : "bg-[#f4f4f4] text-[#484848] hover:bg-[#e8e8e8]"
+                  }`}
+                >
+                  Free-form
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditType("multiple_choice")}
+                  className={`flex-1 py-2 px-3 text-sm font-semibold rounded transition-colors ${
+                    editType === "multiple_choice"
+                      ? "bg-[#d00] text-white"
+                      : "bg-[#f4f4f4] text-[#484848] hover:bg-[#e8e8e8]"
+                  }`}
+                >
+                  Multiple Choice
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
+                Question
+              </label>
+              <textarea
+                placeholder="Enter your trivia question..."
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                className="espn-input w-full min-h-[80px] resize-none"
+              />
+            </div>
+            {editType === "multiple_choice" && (
+              <div>
+                <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
+                  Options (min 2)
+                </label>
+                <div className="space-y-2">
+                  {editOptions.map((option, index) => (
+                    <input
+                      key={index}
+                      type="text"
+                      placeholder={`Option ${index + 1}`}
+                      value={option}
+                      onChange={(e) => {
+                        const updated = [...editOptions];
+                        updated[index] = e.target.value;
+                        setEditOptions(updated);
+                      }}
+                      className="espn-input w-full"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
+                Points
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={editPoints}
+                onChange={(e) => setEditPoints(parseInt(e.target.value) || 10)}
+                className="espn-input w-24"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editRevealed}
+                  onChange={(e) => setEditRevealed(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-[#d00] focus:ring-[#d00]"
+                />
+                <span className="text-sm font-semibold text-[#484848]">
+                  Revealed
+                </span>
+              </label>
+              {editRevealed && (
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold text-[#6c6c6c] uppercase tracking-wide mb-2">
+                    Correct Answer
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter the correct answer..."
+                    value={editCorrectAnswer}
+                    onChange={(e) => setEditCorrectAnswer(e.target.value)}
+                    className="espn-input w-full"
+                  />
+                </div>
+              )}
+              {!editRevealed && editQuestion?.is_revealed && (
+                <p className="mt-2 text-xs text-[#d00] font-medium">
+                  Un-revealing will clear the correct answer and may affect player scores.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setEditDialogOpen(false)}
+              className="espn-button-outline"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveEdit}
+              className="espn-button"
+              disabled={!editText.trim() || isSavingEdit}
+            >
+              {isSavingEdit ? "Saving..." : "Save Changes"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Reset Game Dialog */}
       <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
