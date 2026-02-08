@@ -19,6 +19,7 @@ export default function PlayQuestions() {
   const [isLoading, setIsLoading] = useState(true);
   const [totalScore, setTotalScore] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
 
   const fetchQuestionsAndAnswers = useCallback(async (pId: string) => {
     const supabase = createClient();
@@ -179,6 +180,14 @@ export default function PlayQuestions() {
         correctCount={correctCount}
         revealedCount={revealedCount}
         onLeave={handleLeaveGame}
+        onProfileClick={() => {
+          if (answeredCount >= questions.length) {
+            setShowSummary(true);
+          } else {
+            setShowSummary(false);
+            setCurrentQuestionIndex(0);
+          }
+        }}
       />
 
       {/* Status Strip */}
@@ -191,6 +200,124 @@ export default function PlayQuestions() {
 
       {/* Main Content */}
       <main className="flex-1 p-4 sm:p-6">
+        {showSummary ? (
+          <div className="max-w-[680px] mx-auto space-y-4">
+            {/* Summary Header */}
+            <div className="text-center py-4">
+              <div className="w-16 h-16 bg-[#d00] rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-black text-[#121212] mb-1">All Done!</h2>
+              <p className="text-[#6c6c6c]">
+                You answered {answeredCount} of {questions.length} questions
+              </p>
+            </div>
+
+            {/* Score Card */}
+            <div className="espn-card overflow-hidden">
+              <div className="bg-[#252525] px-4 py-3 flex items-center justify-between">
+                <span className="text-white font-bold text-sm">YOUR RESULTS</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[#999] text-xs">Score</span>
+                  <span className="text-white font-black text-lg">{totalScore}</span>
+                </div>
+              </div>
+              <div className="divide-y divide-[#e8e8e8]">
+                {questions.map((q, index) => {
+                  const isRevealed = q.is_revealed;
+                  const isCorrect = q.player_answer?.is_correct;
+                  const hasAnswer = !!q.player_answer;
+
+                  return (
+                    <div key={q.id} className="p-4">
+                      <div className="flex items-start gap-3">
+                        {/* Status Icon */}
+                        <div className="flex-shrink-0 mt-0.5">
+                          {isRevealed && isCorrect ? (
+                            <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          ) : isRevealed && hasAnswer ? (
+                            <div className="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          ) : hasAnswer ? (
+                            <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-[#f4f4f4] flex items-center justify-center">
+                              <span className="text-xs font-bold text-[#999]">—</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Question Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-bold text-[#999]">Q{index + 1}</span>
+                            <span className="text-xs text-[#999]">{q.points} pts</span>
+                          </div>
+                          <p className="text-sm font-medium text-[#121212] mb-2">
+                            {q.question_text}
+                          </p>
+                          {hasAnswer && (
+                            <div className={`text-sm rounded px-3 py-1.5 inline-block ${
+                              isRevealed && isCorrect
+                                ? "bg-green-50 text-green-700"
+                                : isRevealed && !isCorrect
+                                ? "bg-red-50 text-red-700"
+                                : "bg-[#f4f4f4] text-[#484848]"
+                            }`}>
+                              <span className="font-medium">Your answer: </span>
+                              {q.player_answer?.answer_text}
+                              {isRevealed && isCorrect && (
+                                <span className="ml-2 font-semibold">+{q.player_answer?.points_earned}</span>
+                              )}
+                            </div>
+                          )}
+                          {!hasAnswer && (
+                            <span className="text-sm text-[#999] italic">No answer submitted</span>
+                          )}
+                          {isRevealed && q.correct_answer && !isCorrect && (
+                            <div className="text-sm rounded px-3 py-1.5 inline-block bg-green-50 text-green-700 mt-1 ml-0">
+                              <span className="font-medium">Correct answer: </span>
+                              {q.correct_answer}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSummary(false)}
+                className="espn-button-outline flex-1"
+              >
+                Back to Questions
+              </button>
+              <a
+                href="/leaderboard"
+                className="espn-button flex-1 text-center"
+              >
+                View Leaderboard
+              </a>
+            </div>
+          </div>
+        ) : (
         <div className="max-w-[680px] mx-auto space-y-4">
           {/* Question Navigation Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -238,6 +365,8 @@ export default function PlayQuestions() {
                 fetchQuestionsAndAnswers(playerId!);
                 if (currentQuestionIndex < questions.length - 1) {
                   setCurrentQuestionIndex(currentQuestionIndex + 1);
+                } else {
+                  setShowSummary(true);
                 }
               }}
             />
@@ -267,6 +396,7 @@ export default function PlayQuestions() {
             </button>
           </div>
         </div>
+        )}
       </main>
 
       {/* Footer with Invite Code */}

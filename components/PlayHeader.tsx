@@ -8,6 +8,7 @@ interface PlayHeaderProps {
   correctCount: number;
   revealedCount: number;
   onLeave: () => void;
+  onProfileClick?: () => void;
 }
 
 export function PlayHeader({
@@ -16,6 +17,7 @@ export function PlayHeader({
   correctCount,
   revealedCount,
   onLeave,
+  onProfileClick,
 }: PlayHeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
@@ -60,14 +62,17 @@ export function PlayHeader({
           </div>
 
           {/* Player dropdown / name */}
-          <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-gray-200">
+          <button
+            onClick={onProfileClick}
+            className="hidden sm:flex items-center gap-2 pl-2 border-l border-gray-200 hover:opacity-80 transition-opacity cursor-pointer"
+          >
             <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center">
               <span className="text-xs font-semibold text-gray-600">
                 {playerName.charAt(0).toUpperCase()}
               </span>
             </div>
             <span className="text-sm font-medium text-gray-700">{playerName}</span>
-          </div>
+          </button>
 
           {/* Leave Button */}
           <button
