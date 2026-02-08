@@ -234,7 +234,12 @@ export default function PlayQuestions() {
               playerId={playerId!}
               questionNumber={currentQuestionIndex + 1}
               totalQuestions={questions.length}
-              onAnswerSubmit={() => fetchQuestionsAndAnswers(playerId!)}
+              onAnswerSubmit={() => {
+                fetchQuestionsAndAnswers(playerId!);
+                if (currentQuestionIndex < questions.length - 1) {
+                  setCurrentQuestionIndex(currentQuestionIndex + 1);
+                }
+              }}
             />
           )}
 
